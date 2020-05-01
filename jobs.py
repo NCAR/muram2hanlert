@@ -1,8 +1,10 @@
 import os
 import os.path
+import shutil
+import numpy as np
 import muram
-import hanlert
-import utils
+import hanlert.io
+from . import utils
 
 def write_col(col, filepath, vmicro=None, density_type='rho', tau_scale=False, 
               min_height=-100.0, tau1_ix=None, max_tau=20., sample=1, **kwargs):
@@ -41,7 +43,7 @@ def write_col(col, filepath, vmicro=None, density_type='rho', tau_scale=False,
     if vmicro is None:
         vmicro = zeros
     
-    hanlert.write_atmos(filepath, height[sel], col.T[sel], density[sel], zeros[sel], vmicro[sel],
+    hanlert.io.write_atmos(filepath, height[sel], col.T[sel], density[sel], zeros[sel], vmicro[sel],
                 density_type=density_type, tau_scale=tau_scale, **kwargs)
     
     # Magnetic field
@@ -51,19 +53,19 @@ def write_col(col, filepath, vmicro=None, density_type='rho', tau_scale=False,
     Binc = np.degrees(np.arccos(col.Bx/B)) # deg; range [0, 180]
     Bazi = np.degrees(np.arctan2(col.By, col.Bz)) # deg; range [-180, +180]
     Bazi[ Bazi < 0 ] += 360. # deg; range [0, 360]
-    hanlert.write_Bfield(filepath, B[sel], Binc[sel], Bazi[sel])
+    hanlert.io.write_Bfield(filepath, B[sel], Binc[sel], Bazi[sel])
 
 def make_colpath(iteration, y, z):
     colpath = f"iter_{iteration:05d}/YZ_{y:04d}_{z:04d}"
     return colpath
     
-def make_jobpath(jobroot, iteration, y, z):
+def make_jobpath(jobroot, jobname, iteration, y, z):
     colpath = make_colpath(iteration, y, z)
-    jobpath = os.path.join(jobroot, colpath)
+    jobpath = os.path.join(jobroot, 'jobs', jobname, colpath)
     return jobpath
 
-def job_status(jobroot, iteration, y, z, outfile='stdout'):
-    jobpath = make_jobpath(jobroot, iteration, y, z)
+def job_status(jobroot, jobname, iteration, y, z, outfile='stdout'):
+    jobpath = make_jobpath(jobroot, jobname, iteration, y, z)
     status = None
     if os.path.exists(jobpath):
         status = "prepared"
@@ -76,14 +78,14 @@ def job_status(jobroot, iteration, y, z, outfile='stdout'):
             status = 'done'
     return status
 
-def prepare_job(datapath, jobroot, iteration, y, z,
+def prepare_job(datapath, jobroot, jobname, iteration, y, z,
                 project, email,
                 intemp="INPUT.template", subtemp="qsub.template", overwrite=False, **kwargs):
     snap = muram.MuramSnap(datapath, iteration)
     col = snap.column(y, z)
     
     colpath = make_colpath(iteration, y, z)
-    jobpath = make_jobpath(jobroot, iteration, y, z)
+    jobpath = make_jobpath(jobroot, jobname, iteration, y, z)
     if os.path.exists(jobpath):
         if overwrite:
             shutil.rmtree(jobpath)
@@ -101,17 +103,17 @@ def prepare_job(datapath, jobroot, iteration, y, z,
     open(inout, 'w').write(intemp)
     
     # Prepare qsub file
-    jobname = "hanlert_muramcol_" + colpath.replace("/", "_")
+    subjobname = "muram2hanlert_" + jobname + '_' + colpath.replace("/", "_")
     subtemp = os.path.join(jobroot, subtemp)
     subtemp = open(subtemp, 'r').read()
-    subtemp = subtemp.format(jobpath=jobpath_rel, jobname=jobname, project=project, email=email)
+    subtemp = subtemp.format(jobpath=jobpath_rel, jobname=subjobname, project=project, email=email)
     subout = os.path.join(jobpath, "hanlert.qsub")
     open(subout, 'w').write(subtemp)
 
     return jobpath
 
-def start_job(jobroot, iteration, y, z):
-    jobpath = make_jobpath(jobroot, iteration, y, z)
+def start_job(jobroot, jobname, iteration, y, z):
+    jobpath = make_jobpath(jobroot, jobname, iteration, y, z)
     qsub = os.path.join(jobpath, 'hanlert.qsub')
     command = "qsub " + qsub
     print(command)
