@@ -1,0 +1,26 @@
+! Molecule
+  H2O
+
+! Mass
+  18.015280
+
+! Charge
+  0
+
+! Atoms
+  2H, O
+
+! Dissociation energy [10^5 cm^-1]
+  0.76719455
+
+! Type of partition function fit
+  KURUCZ_70
+
+! Minimum and Maximum temperatures
+  1.0E+3  6.0E+3
+
+! pf coefficients
+  0
+
+! eqc coefficients
+  5   -9.3179E+01   2.6725E-03   -5.7830E-07   8.5268E-11  -5.1311E-15

@@ -1,0 +1,26 @@
+! Molecule
+  C2
+
+! Mass
+  24.022000
+
+! Charge
+  0
+
+! Atoms
+  2C
+
+! Dissociation energy [10^5 cm^-1]
+  0.50087029
+
+! Type of partition function fit
+  SAUVAL_TATUM_84
+
+! Minimum and Maximum temperatures
+  1.0E+3  16.0E+3
+
+! pf coefficients
+  4    4.3091   -2.2406    0.4865   -0.2049
+
+! eqc coefficients
+  3   11.4576   -0.4458   -0.1818

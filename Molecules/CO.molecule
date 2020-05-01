@@ -1,0 +1,26 @@
+! Molecule
+  CO
+
+! Mass
+  28.010400
+
+! Charge
+  0
+
+! Atoms
+  C, O
+
+! Dissociation energy [10^5 cm^-1]
+  0.89454949
+
+! Type of partition function fit
+  KURUCZ_85
+
+! Minimum and Maximum temperatures
+  1.0E+3  12.0E+3
+
+! pf coefficients
+  7   4.51349  18.4221  -50.0599  102.208  -128.504  87.8414  -24.8533
+
+! eqc coefficients
+  6  -49.0414  14.0306  -26.6341  35.3827  -26.5424  8.32385

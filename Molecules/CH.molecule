@@ -1,0 +1,26 @@
+! Molecule
+  CH
+
+! Mass
+  13.018940
+
+! Charge
+  0
+
+! Atoms
+  C, H
+
+! Dissociation energy [10^5 cm^-1]
+  0.27947110
+
+! Type of partition function fit
+  SAUVAL_TATUM_84
+
+! Minimum and Maximum temperatures
+  1.0E+3  9.0E+3
+
+! pf coefficients
+  4   3.3586  -2.0656   0.9624  -0.2239
+
+! eqc coefficients
+  3  10.5263  -0.5284  -0.7239

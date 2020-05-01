@@ -1,0 +1,17 @@
+#!/bin/bash
+### Job Name
+#PBS -N {jobname}
+### Project code
+#PBS -A {project}
+#PBS -l walltime=04:00:00
+#PBS -q regular
+### Define output and error files
+#PBS -o {jobpath}/stdout
+#PBS -e {jobpath}/stderr
+#PBS -l select=1:ncpus=36:mpiprocs=36
+### Send email on abort, begin and end
+#PBS -m abe
+### Specify mail recipient
+#PBS -M {email}
+
+mpirun hanlert {jobpath}/INPUT
