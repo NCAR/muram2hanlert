@@ -1,2 +1,5 @@
 hanlert
 hanlert.py
+notebooks/.*
+notebooks/*.png
+notebooks/*.pdf
