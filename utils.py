@@ -1,3 +1,5 @@
+import os
+
 # https://stackoverflow.com/questions/2301789/read-a-file-in-reverse-order-using-python
 # Credit: srohde, Mark Amery
 def reverse_readline(filename, buf_size=8192):
