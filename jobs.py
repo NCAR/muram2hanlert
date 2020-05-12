@@ -1,5 +1,8 @@
+from collections import OrderedDict
 import os
 import os.path
+import time
+import re
 import shutil
 import numpy as np
 import muram
@@ -58,24 +61,76 @@ def write_col(col, filepath, vmicro=None, density_type='rho', tau_scale=False,
 def make_colpath(iteration, y, z):
     colpath = f"iter_{iteration:05d}/YZ_{y:04d}_{z:04d}"
     return colpath
+
+def make_col_id(iteration, y, z):
+    colpath = make_colpath(iteration, y, z)
+    col_id = colpath.replace("/", "_")
+    return col_id
     
 def make_jobpath(jobroot, jobname, iteration, y, z):
     colpath = make_colpath(iteration, y, z)
     jobpath = os.path.join(jobroot, 'jobs', jobname, colpath)
     return jobpath
 
-def job_status(jobroot, jobname, iteration, y, z, outfile='stdout'):
+def parse_time(timeline):
+    match = re.search("Time: (?:\s*(\d+) hours, )?\s*(\d+) minutes[,]? and \s*(\d+) seconds", timeline)
+    if match is None:
+        return None
+    hms = match.groups() # (hours, minutes, seconds); potentially with None
+    def toint(s):
+        if s is None:
+            return 0
+        else:
+            return int(s)
+    hms = [toint(s) for s in hms] # now ints
+    seconds = 0
+    seconds += hms[0] * 3600 # hours to seconds
+    seconds += hms[1] * 60 # minutes to seconds
+    seconds += hms[2]
+    return seconds
+    
+def job_status(jobroot, jobname, iteration, y, z, outfile='stdout', stokesfile='Stokesout'):
     jobpath = make_jobpath(jobroot, jobname, iteration, y, z)
     status = None
     if os.path.exists(jobpath):
-        status = "prepared"
+        status = "PREPARED", None
     
     outfile = os.path.join(jobpath, outfile)
     if os.path.exists(outfile):
-        status = 'started'
+        stat = os.stat(outfile)
+        tstart = os.path.getctime(outfile)
+        telapse = time.time() - tstart
+        status = 'STARTED', telapse
         lastlines = [x for x in utils.tail(outfile, 3)]
         if lastlines[0] == ' - Solver finished':
-            status = 'done'
+            timeline = lastlines[2]
+            trun = parse_time(timeline)
+            # check that the stokes output was written
+            stokesfile = os.path.join(jobpath, stokesfile)
+            if os.path.exists(stokesfile):
+                status = 'OK', trun
+            else:
+                status = 'FAIL', trun
+        elif "Controlled abortion" in lastlines[-1]:
+            tmod = os.path.getmtime(outfile)
+            trun = tmod - tstart
+            status = 'FAIL', trun
+    return status
+
+def run_status(jobroot, jobname):
+    status = OrderedDict()
+    jobpath = os.path.join(jobroot, 'jobs', jobname)
+    for iterdir in sorted(os.listdir(jobpath)):
+        label, iteration = iterdir.split('_')
+        iteration = int(iteration)
+        status[iteration] = OrderedDict()
+        iterpath = os.path.join(jobpath, iterdir)
+        for jobdir in sorted(os.listdir(iterpath)):
+            label, y, z = jobdir.split("_")
+            y = int(y)
+            z = int(z)
+            point = (y, z)
+            status[iteration][point] = job_status(jobroot, jobname, iteration, y, z)
     return status
 
 def prepare_job(datapath, jobroot, jobname, iteration, y, z,
@@ -103,7 +158,8 @@ def prepare_job(datapath, jobroot, jobname, iteration, y, z,
     open(inout, 'w').write(intemp)
     
     # Prepare qsub file
-    subjobname = "muram2hanlert_" + jobname + '_' + colpath.replace("/", "_")
+    col_id = make_col_id(iteration, y, z)
+    subjobname = "muram2hanlert_" + jobname + '_' + col_id
     subtemp = os.path.join(jobroot, subtemp)
     subtemp = open(subtemp, 'r').read()
     subtemp = subtemp.format(jobpath=jobpath_rel, jobname=subjobname, project=project, email=email)
