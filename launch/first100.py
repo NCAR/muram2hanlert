@@ -12,5 +12,5 @@ N = 10
 step = 4
 for y in range(0, N*step, step):
     for z in range(0, N*step, step):
-        m2h.prepare_job(dir3D, jobroot, jobname, iteration, y, z, project, email, sample=2)
+        m2h.prepare_job(dir3D, jobroot, jobname, iteration, y, z, project, email, sample=2, zerovel=True)
         m2h.start_job(jobroot, jobname, iteration, y, z)

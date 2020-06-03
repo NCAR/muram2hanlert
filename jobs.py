@@ -9,7 +9,7 @@ import muram
 import hanlert.io
 from . import utils
 
-def write_col(col, filepath, vmicro=None, density_type='rho', tau_scale=False, 
+def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau_scale=False, 
               min_height=-100.0, tau1_ix=None, max_tau=20., sample=1, **kwargs):
     
     # Atmosphere
@@ -40,13 +40,15 @@ def write_col(col, filepath, vmicro=None, density_type='rho', tau_scale=False,
     else:
         raise Exception("Unsupported density option: "+density_type)
     
-    # XXX setting vmacro = zeros for now
-    # XXX vmicro probably set to zero
     zeros = np.zeros_like(col.x)
     if vmicro is None:
         vmicro = zeros
+    if zerovel:
+        vmacro = zeros
+    else:
+        vmacro = col.vx # cm/s^2
     
-    hanlert.io.write_atmos(filepath, height[sel], col.T[sel], density[sel], zeros[sel], vmicro[sel],
+    hanlert.io.write_atmos(filepath, height[sel], col.T[sel], density[sel], vmacro[sel], vmicro[sel],
                 density_type=density_type, tau_scale=tau_scale, **kwargs)
     
     # Magnetic field
