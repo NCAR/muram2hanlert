@@ -10,7 +10,7 @@ import hanlert.io
 from . import utils
 
 def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau_scale=False, 
-              min_height=-100.0, tau1_ix=None, max_tau=20., sample=1, **kwargs):
+              min_height=-100.0, tau1_ix=None, max_tau=20., N_ixs=None, sample=1, **kwargs):
     
     # Atmosphere
     #
@@ -23,6 +23,12 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
     else:
         height = col.tau
         sel = height <= max_tau
+
+    # Optionally select a fixed number of grid points from the top
+    # Overrides min_height/max_tau settings
+    if N_ixs is not None:
+        sel = np.zeros(height.size, dtype='bool')
+        sel[-N_ixs:] = True
         
     # Optionally select only every nth sample
     # Careful to keep the deepest sample from selection above
@@ -46,7 +52,7 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
     if zerovel:
         vmacro = zeros
     else:
-        vmacro = col.vx # cm/s^2
+        vmacro = col.vx / 1e5 # km/s
     
     hanlert.io.write_atmos(filepath, height[sel], col.T[sel], density[sel], vmacro[sel], vmicro[sel],
                 density_type=density_type, tau_scale=tau_scale, **kwargs)
