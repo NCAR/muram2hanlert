@@ -318,6 +318,11 @@
 !   Multiplicative factor for the step when you are out of the 
 !   RED_RANG_CORE range, but inside RED_VLAR_CORE, for the core region
 !
+! NO_COH_L_TERM (OPTIONAL. DEFAULT=NO): String YES/NO
+!   If YES, omit the non-coherent lower term.  This only impacts the 
+!   second order emissivity.  It also reduces the dimensions of the 
+!   redistribution array.
+!
 !#####################################################################
 
  ITER_2ORD = YES
@@ -339,6 +344,8 @@
  RED_FSTP_CORE = 0.25
  RED_MSTP = 4
  RED_MSTP_CORE = 8
+
+ NO_COH_L_TERM = YES
 
 !#####################################################################
 !
@@ -378,7 +385,11 @@
 
  RED_PRAM = YES
 
- RAM_LIM = NONE
+! Cheyenne has 64 MB per node
+! and 36 cores per node
+! allowing for 4 GB for "other things"
+! we have (64 -4) / 36 [GB/core] * 1024 [MB/GB] = 1706.667 [MB/core]
+ RAM_LIM = 1706
 
 !#####################################################################
 !
