@@ -67,7 +67,7 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
     hanlert.io.write_Bfield(filepath, B[sel], Binc[sel], Bazi[sel])
 
 def make_colpath(iteration, y, z):
-    colpath = f"iter_{iteration:05d}/YZ_{y:04d}_{z:04d}"
+    colpath = f"iter_{iteration:05d}/Y_{y:04d}/Z_{z:04d}"
     return colpath
 
 def make_col_id(iteration, y, z):
@@ -133,12 +133,15 @@ def run_status(jobroot, jobname):
         iteration = int(iteration)
         status[iteration] = OrderedDict()
         iterpath = os.path.join(jobpath, iterdir)
-        for jobdir in sorted(os.listdir(iterpath)):
-            label, y, z = jobdir.split("_")
+        for ydir in sorted(os.listdir(iterpath)):
+            label, y = ydir.split("_")
             y = int(y)
-            z = int(z)
-            point = (y, z)
-            status[iteration][point] = job_status(jobroot, jobname, iteration, y, z)
+            ypath = os.path.join(iterpath, ydir)
+            for zdir in sorted(os.listdir(ypath)):
+                label, z = zdir.split("_")
+                z = int(z)
+                point = (y, z)
+                status[iteration][point] = job_status(jobroot, jobname, iteration, y, z)
     return status
 
 def prepare_job(datapath, jobroot, jobname, iteration, y, z,
@@ -147,7 +150,6 @@ def prepare_job(datapath, jobroot, jobname, iteration, y, z,
     snap = muram.MuramSnap(datapath, iteration)
     col = snap.column(y, z)
     
-    colpath = make_colpath(iteration, y, z)
     jobpath = make_jobpath(jobroot, jobname, iteration, y, z)
     if os.path.exists(jobpath):
         if overwrite:
