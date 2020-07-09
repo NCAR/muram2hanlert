@@ -370,8 +370,8 @@
 !   !!!!!WARNING!!!!! THIS OPTION CAN MAKE YOUR COMPUTER RUN OUT OF
 !   MEMORY DEPENDING ON THE ATOM AND RAM_LIM.
 !
-! RAM_LIMM (OPTIONAL. DEFAULT=NONE): CHARACTER(NONE) or INTEGER
-!   Limit in Mb per CPU that can be used to allocate RAM to be used
+! RAM_LIM (OPTIONAL. DEFAULT=NONE): CHARACTER(NONE) or INTEGER
+!   Limit in MB per CPU that can be used to allocate RAM to be used
 !   to store Voigt profiles and redistribution functions.
 !   NOTE: It ONLY limits the RAM used in these SPECIFIC variables.
 !
@@ -386,10 +386,11 @@
  RED_PRAM = YES
 
 ! Cheyenne has 64 MB per node
-! and 36 cores per node
-! allowing for 4 GB for "other things"
-! we have (64 -4) / 36 [GB/core] * 1024 [MB/GB] = 1706.667 [MB/core]
- RAM_LIM = 1706
+! "Usable memory" is listed as 45 GB per node for normal (common) nodes
+! There are 36 cores per node
+! We have 45 / 36 [GB/core] * 1024 [MB/GB] = 1280 [MB/core]
+! RAM_LIM = 1280
+RAM_LIM = NONE
 
 !#####################################################################
 !
