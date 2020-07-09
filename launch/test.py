@@ -10,5 +10,5 @@ z = 0
 project = "NHAO0016" # "P22100000"
 email = "egeland@ucar.edu"
 
-m2h.prepare_job(dir3D, jobroot, jobname, iteration, y, z, project, email, overwrite=True, sample=2)
+m2h.prepare_job(dir3D, jobroot, jobname, iteration, y, z, project, email, N_ixs=140, sample=2, zerovel=True)
 m2h.start_job(jobroot, jobname, iteration, y, z)
