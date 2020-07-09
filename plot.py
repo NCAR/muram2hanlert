@@ -34,29 +34,35 @@ def plot_atmos(col, min_height=-100., close=False, save=False):
     ax8.set_ylabel('By [G]')
     ax9.plot(height[sel], col.Bz[sel] * sqrt4pi, 'k.-')
     ax9.set_ylabel('Bz [G]')
+
+    for ax in (ax3, ax6, ax9):
+        ax.set_xlabel('Height [km]')
+
+    for ax in (ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8, ax9):
+        ax.ticklabel_format(axis='y', style='sci', scilimits=(0, 5))
+
     fig.suptitle(f"iteration={iteration} col=({col.y}, {col.z})")
-    fig.tight_layout(rect=[0, 0.03, 1, 0.98])
+    fig.tight_layout(rect=[0, 0.03, 1, 0.97])
     if save:
-        fig.savefig(f'mean_atmos_{col.iteration:5d}.png')
+        fig.savefig(f'atmos_iter_{col.iteration:05d}_Y_{col.y:04d}_Z_{col.z:04d}.pdf')
     if close:
         plt.close(fig)
         
-def plot_col(snap, y, z):
+def plot_col(snap, y, z, **kwargs):
     col = snap.column(y, z)
-    plot_atmos(col)
+    plot_atmos(col, **kwargs)
 
-def plot_random_col(snap):
+def plot_random_col(snap, **kwargs):
     y = np.random.randint(0, snap.T.shape[1])
     z = np.random.randint(0, snap.T.shape[2])
-    plot_col(snap, y, z)
+    plot_col(snap, y, z, **kwargs)
 
-def plot_CaII(jobroot, jobname, iteration, y, z, save=False, close=False):
+def plot_CaII(jobroot, jobname, iteration, y, z, mu=None, save=False, close=False, **kwargs):
     
     # mpl.rcParams.update({'font.size':12})
     jobpath = jobs.make_jobpath(jobroot, jobname, iteration, y, z)
     col_id = jobs.make_col_id(iteration, y, z)
-    title = f"{jobname} iteration={iteration} col=({y}, {z}) Ca II {label}"
+    title = f"{jobname} iteration={iteration} col=({y}, {z}) Ca II"
     if save:
-        plotfile = f"{col_id}_CaII_{label}.pdf"
-        save = plotfile
-    hanlert.plot_CaII(jobpath, title=title, save=save, close=close, **kwargs)
+        save = col_id
+    hanlert.plot_CaII(jobpath, mu=mu, title=title, save=save, close=close, **kwargs)
