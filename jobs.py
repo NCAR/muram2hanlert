@@ -11,6 +11,27 @@ from . import utils
 
 def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau_scale=False, 
               min_height=-100.0, tau1_ix=None, max_tau=20., N_ixs=None, sample=1, **kwargs):
+    """Write MURaM column as HanleRT input files
+
+    Two files are written to the given filepath: muram.atmos and muram.field, containing 
+    the atmosphere and magnetic field parameters, respectively.
+
+    Inputs:
+     - col (MuramColumn)  : column to write
+     - filepath (str)     : destination directory
+     - vmicro (ndarray)   : optional microturbulent velocity array
+     - zerovel (bool)     : if True, velocities from col are ignored
+     - density_type (str) : the type of data specifying density/pressure
+     - tau_scale (bool)   : if True, a tau depth scale is used instead of height
+     - min_height (float) : the lowest height taken from col
+     - tau1_ix (int)      : the index which should be considered tau=1 or height=0
+     - max_tau (int)      : the maximum optical depth taken from col (when tau_scale is True)
+     - sample (int)       : the sampling interval for col.  Default is 1 (every element)
+     - **kwargs           : remaining keyword args are passed to hanlert.io.write_atmos
+
+    Returns:
+     - None
+    """
     
     # Atmosphere
     #
@@ -178,10 +199,66 @@ def prepare_job(datapath, jobroot, jobname, iteration, y, z,
 
     return jobpath
 
-def start_job(jobroot, jobname, iteration, y, z):
-    jobpath = make_jobpath(jobroot, jobname, iteration, y, z)
+def start_jobpath(jobpath):
     qsub = os.path.join(jobpath, 'hanlert.qsub')
     command = "qsub " + qsub
     print(command)
     return_code = os.system(command)
     return return_code
+
+def start_job(jobroot, jobname, iteration, y, z):
+    jobpath = make_jobpath(jobroot, jobname, iteration, y, z)
+    return start_jobpath(jobpath)
+
+def prepare_uniformB_jobs(jobroot, jobname, B, project, email,
+                intemp="INPUT.template", subtemp="qsub.template", overwrite=False, **kwargs):
+    """Prepare a sereis of jobs imposing a uniform magnetic field"""
+
+    
+    if B.shape[1] != 3:
+        raise Exception("Bfile should be numpy array of [Bmag, Binc, Bazi], shape (n, 3)")
+    N = B.shape[0]
+
+    # Ensure clean directory tree at the jobname level
+    jobnamepath = os.path.join(jobroot, 'jobs', jobname)
+    if os.path.exists(jobnamepath):
+        if overwrite:
+            shutil.rmtree(jobnamepath)
+        else:
+            raise Exception("job directory " + jobnamepath + " already exists")
+    os.makedirs(jobnamepath)
+
+    # Save magnetic field data to jobnamepath
+    Bfile = os.path.join(jobnamepath, 'uniformB.npy')
+    np.save(Bfile, B)
+
+    jobpath_list = []
+    for ix in range(N):
+        Bname = f"B_{ix:04d}"
+        Bmag = B[ix, 0]
+        Binc = B[ix, 1]
+        Bazi = B[ix, 2]
+
+        jobpath = os.path.join(jobnamepath, Bname)
+        os.makedirs(jobpath)
+
+        # Write field file
+        hanlert.io.write_Bfield(os.path.join(jobpath, 'B'), Bmag, Binc, Bazi)
+        
+        # Prepare INPUT file
+        jobpath_rel = os.path.relpath(jobpath, jobroot)
+        intemppath = os.path.join(jobroot, intemp)
+        intempstr = open(intemppath, 'r').read()
+        intempstr = intempstr.format(jobpath=jobpath_rel)
+        inout = os.path.join(jobpath, "INPUT")
+        open(inout, 'w').write(intempstr)
+    
+        # Prepare qsub file
+        subjobname = "uniformB_" + jobname + '_' + Bname
+        subtemppath = os.path.join(jobroot, subtemp)
+        subtempstr = open(subtemp, 'r').read()
+        subtempstr = subtempstr.format(jobpath=jobpath_rel, jobname=subjobname, project=project, email=email)
+        subout = os.path.join(jobpath, "hanlert.qsub")
+        open(subout, 'w').write(subtempstr)
+        jobpath_list.append(jobpath)
+    return jobpath_list
