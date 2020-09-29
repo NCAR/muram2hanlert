@@ -254,7 +254,7 @@ def prepare_uniformB_jobs(jobroot, jobname, B, project, email,
         open(inout, 'w').write(intempstr)
     
         # Prepare qsub file
-        subjobname = "uniformB_" + jobname + '_' + Bname
+        subjobname = jobname + '_' + Bname
         subtemppath = os.path.join(jobroot, subtemp)
         subtempstr = open(subtemp, 'r').read()
         subtempstr = subtempstr.format(jobpath=jobpath_rel, jobname=subjobname, project=project, email=email)
