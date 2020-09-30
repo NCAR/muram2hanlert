@@ -130,7 +130,7 @@ def job_status(jobroot, jobname, iteration, y, z, outfile='stdout', stokesfile='
         tstart = os.path.getctime(outfile)
         telapse = time.time() - tstart
         status = 'STARTED', telapse
-        lastlines = [x for x in utils.tail(outfile, 3)]
+        lastlines = [x for x in utils.tail(outfile, 4)] # TODO BUG: PBS, mpirun might add lines
         if lastlines[0] == ' - Solver finished':
             timeline = lastlines[2]
             trun = parse_time(timeline)
