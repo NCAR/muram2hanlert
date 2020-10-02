@@ -10,7 +10,7 @@ import hanlert.io
 from . import utils
 
 def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau_scale=False, 
-              min_height=-100.0, tau1_ix=None, max_tau=20., N_ixs=None, sample=1, **kwargs):
+              min_height=-100.0, tau1_ix=None, max_tau=20., N_ixs=None, N_ixs_ref='top', sample=1, **kwargs):
     """Write MURaM column as HanleRT input files
 
     Two files are written to the given filepath: muram.atmos and muram.field, containing 
@@ -26,6 +26,12 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
      - min_height (float) : the lowest height taken from col
      - tau1_ix (int)      : the index which should be considered tau=1 or height=0
      - max_tau (int)      : the maximum optical depth taken from col (when tau_scale is True)
+     - N_ixs (int)        : the number of indexes to take from the column.  The default (None) is to take all 
+                            indexes above min_height or max_tau.
+     - N_ixs_ref (str)    : Reference point for taking N_ixs.  Either 'top' (default), to take from the top of
+                            the domain, 'min' to take from above the specified min_height or max_tau, or 'tau1' 
+                            to take from above the tau1_ix (tau=1/height=0 point).  'top' and 'tau1'
+                            causes min_height/max_tau to be ignored.
      - sample (int)       : the sampling interval for col.  Default is 1 (every element)
      - **kwargs           : remaining keyword args are passed to hanlert.io.write_atmos
 
@@ -36,25 +42,45 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
     # Atmosphere
     #
     # Select only heights above the defined minimum
+    if tau1_ix is None:
+        tau1_ix = (np.abs(col.tau - 1.0)).argmin()
     if not tau_scale:
-        if tau1_ix is None:
-            tau1_ix = (np.abs(col.tau - 1.0)).argmin()
         height = (col.X - col.X[tau1_ix]) / 1e5 # km
         sel = height >= min_height
     else:
         height = col.tau
         sel = height <= max_tau
+    min_height_ix = np.where(sel)[0][0] # smallest height / biggest tau
 
-    # Optionally select a fixed number of grid points from the top
-    # Overrides min_height/max_tau settings
+    # Optionally select a fixed number of grid points
     if N_ixs is not None:
         sel = np.zeros(height.size, dtype='bool')
-        sel[-N_ixs:] = True
+        if N_ixs_ref == 'top':
+            # Overrides min_height/max_tau settings
+            if N_ixs > height.size:
+                raise Exception(f"Requested to take N_ixs={N_ixs} from below the last index, " + 
+                                f"but only {height.size} indexes exist")
+            sel[-N_ixs:] = True
+        elif N_ixs_ref == 'min':
+            top_ix = min_height_ix + N_ixs
+            if top_ix > (height.size - 1):
+                N_above = (height.size - 1) - min_height_ix
+                raise Exception(f"Requested to take N_ixs={N_ixs} from above the specified minimum, " + 
+                                f"but only {N_above} indexes exist above that point")
+            sel[min_height_ix:top_ix] = True
+        elif N_ixs_ref == 'tau1':
+            top_ix = tau1_ix + N_ixs
+            if top_ix > (height.size - 1):
+                N_above = (height.size - 1) - tau1_ix
+                raise Exception(f"Requested to take N_ixs={N_ixs} from above tau=1, " + 
+                                f"but only {N_above} indexes exist above that point")
+            sel[tau1_ix:top_ix] = True
+        else:
+            raise Exception("N_ixs_ref must be either 'top' or 'tau1'")
         
     # Optionally select only every nth sample
     # Careful to keep the deepest sample from selection above
     sel2 = np.zeros_like(height, dtype='bool') # All False
-    min_height_ix = np.where(sel)[0][0] # smallest height / biggest tau
     offset = min_height_ix % sample
     sel2[offset::sample] = True # Every nth True, keeping min_height_ix using offset
     sel = sel & sel2 # AND
@@ -86,6 +112,14 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
     Bazi = np.degrees(np.arctan2(col.By, col.Bz)) # deg; range [-180, +180]
     Bazi[ Bazi < 0 ] += 360. # deg; range [0, 360]
     hanlert.io.write_Bfield(filepath, B[sel], Binc[sel], Bazi[sel])
+
+def shortest_column(datapath, iteration, min_height=0):
+    """Returns the lowest number of indexes above (and including) the min_height sample"""
+    snap = muram.MuramSnap(datapath, iteration)
+    tau1_ix = (np.abs(snap.tau - 1.0)).argmin(axis=0)
+    max_ix = np.max(tau1_ix) + int(np.ceil(min_height * 1e5 / snap.dX[0]))
+    N_shortest = snap.shape[0] - max_ix
+    return N_shortest
 
 def make_colpath(iteration, y, z):
     colpath = f"iter_{iteration:05d}/Y_{y:04d}/Z_{z:04d}"
