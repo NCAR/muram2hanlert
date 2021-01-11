@@ -107,10 +107,11 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
     # Magnetic field
     #
     # Convert from cartesian to inclination/azimuth representation
-    B = np.sqrt(col.Bx**2 + col.By**2 + col.Bz**2) * np.sqrt(4 * np.pi) # TODO XXX remove when fixed in muram.py
+    B = np.sqrt(col.Bx**2 + col.By**2 + col.Bz**2)
     Binc = np.degrees(np.arccos(col.Bx/B)) # deg; range [0, 180]
     Bazi = np.degrees(np.arctan2(col.By, col.Bz)) # deg; range [-180, +180]
     Bazi[ Bazi < 0 ] += 360. # deg; range [0, 360]
+    B = B * np.sqrt(4 * np.pi) # convert to Gauss.  TODO XXX remove when fixed in muram.py
     hanlert.io.write_Bfield(filepath, B[sel], Binc[sel], Bazi[sel])
 
 def shortest_column(datapath, iteration, min_height=0):
