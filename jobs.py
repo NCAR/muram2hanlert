@@ -10,7 +10,8 @@ import hanlert.io
 from . import utils
 
 def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau_scale=False, 
-              min_height=-100.0, tau1_ix=None, max_tau=20., N_ixs=None, N_ixs_ref='top', sample=1, **kwargs):
+              min_height=-100.0, tau1_ix=None, max_tau=20., N_ixs=None, N_ixs_ref='top', sample=1, smooth=None,
+              **kwargs):
     """Write MURaM column as HanleRT input files
 
     Two files are written to the given filepath: muram.atmos and muram.field, containing 
@@ -33,6 +34,7 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
                             to take from above the tau1_ix (tau=1/height=0 point).  'top' and 'tau1'
                             causes min_height/max_tau to be ignored.
      - sample (int)       : the sampling interval for col.  Default is 1 (every element)
+     - smooth (function)  : a 1d smoothing function of a single argument smooth(x) to apply, Default None.
      - **kwargs           : remaining keyword args are passed to hanlert.io.write_atmos
 
     Returns:
@@ -92,7 +94,9 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
         density = col.rho # g/cm^3
     else:
         raise Exception("Unsupported density option: "+density_type)
-    
+
+    # Prepare atmosphere structure
+    T = col.T
     zeros = np.zeros_like(col.x)
     if vmicro is None:
         vmicro = zeros
@@ -100,22 +104,52 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
         vmacro = zeros
     else:
         vmacro = col.vx / 1e5 # km/s
-    
-    hanlert.io.write_atmos(filepath, height[sel], col.T[sel], density[sel], vmacro[sel], vmicro[sel],
-                density_type=density_type, tau_scale=tau_scale, **kwargs)
-    
-    # Magnetic field
-    #
-    # Convert from cartesian to inclination/azimuth representation
-    B = np.sqrt(col.Bx**2 + col.By**2 + col.Bz**2)
-    Binc = np.degrees(np.arccos(col.Bx/B)) # deg; range [0, 180]
-    Bazi = np.degrees(np.arctan2(col.By, col.Bz)) # deg; range [-180, +180]
-    Bazi[ Bazi < 0 ] += 360. # deg; range [0, 360]
+
+    # Magnetic field: convert from cartesian to inclination/azimuth representation
+    def xyz2incazi(Bx, By, Bz):
+        B = np.sqrt(col.Bx**2 + col.By**2 + col.Bz**2)
+        Binc = np.degrees(np.arccos(col.Bx/B)) # deg; range [0, 180]
+        Bazi = np.degrees(np.arctan2(col.By, col.Bz)) # deg; range [-180, +180]
+        Bazi[ Bazi < 0 ] += 360. # deg; range [0, 360]
+        return B, Binc, Bazi
+
+    B, Binc, Bazi = xyz2incazi(col.Bx, col.By, col.Bz)
     B = B * np.sqrt(4 * np.pi) # convert to Gauss.  TODO XXX remove when fixed in muram.py
-    hanlert.io.write_Bfield(filepath, B[sel], Binc[sel], Bazi[sel])
+    
+    # Optionally smooth the atmosphere and write as the default ouptut
+    # In case of smoothing, save original atmosphere with '.orig' extension
+    atmos_ext = '.atmos'
+    field_ext = '.field'
+    if smooth is not None:
+        T_smooth = smooth(T)
+        density_smooth = smooth(density)
+        vmacro_smooth = smooth(vmacro)
+        vmicro_smooth = smooth(vmicro)
+        Bx_smooth = smooth(col.Bx)
+        By_smooth = smooth(col.By)
+        Bz_smooth = smooth(col.Bz)
+        B_smooth, Binc_smooth, Bazi_smooth = xyz2incazi(Bx_smooth, By_smooth, Bz_smooth)
+        B_smooth = B_smooth * np.sqrt(4 * np.pi) # convert to Gauss.  TODO XXX remove when fixed in muram.py
+        hanlert.io.write_atmos(filepath, height[sel], T_smooth[sel], density_smooth[sel],
+                               vmacro_smooth[sel], vmicro_smooth[sel],
+                               density_type=density_type, tau_scale=tau_scale, extension=atmos_ext, **kwargs)
+        hanlert.io.write_Bfield(filepath, B_smooth[sel], Binc_smooth[sel], Bazi_smooth[sel], extension=field_ext)
+        # makes new extensions for the unsmoothed atmospheres written below
+        atmos_ext = '.atmos.orig'
+        field_ext = '.field.orig'
+
+    # Write unsmoothed atmosphere
+    hanlert.io.write_atmos(filepath, height[sel], T[sel], density[sel], vmacro[sel], vmicro[sel],
+                           density_type=density_type, tau_scale=tau_scale, extension=atmos_ext, **kwargs)
+        
+    hanlert.io.write_Bfield(filepath, B[sel], Binc[sel], Bazi[sel], extension=field_ext)
 
 def shortest_column(datapath, iteration, min_height=0):
-    """Returns the lowest number of indexes above (and including) the min_height sample"""
+    """Returns the lowest number of indexes above (and including) the min_height sample
+
+    This is used as a pre-processing step to determine what index range can be used in 
+    a MURaM snapshot to produce a uniform grid of atmosphere heights
+    """
     snap = muram.MuramSnap(datapath, iteration)
     tau1_ix = (np.abs(snap.tau - 1.0)).argmin(axis=0)
     max_ix = np.max(tau1_ix) + int(np.ceil(min_height * 1e5 / snap.dX[0]))
