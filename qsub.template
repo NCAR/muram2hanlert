@@ -3,14 +3,14 @@
 #PBS -N {jobname}
 ### Project code
 #PBS -A {project}
-#PBS -l walltime=04:00:00
-#PBS -q regular
+#PBS -l walltime=02:00:00
+#PBS -q economy
 ### Define output and error files
 #PBS -o {jobpath}/stdout
 #PBS -e {jobpath}/stderr
-#PBS -l select=1:ncpus=36:mpiprocs=36
+#PBS -l select=1:ncpus=36:mpiprocs=36:mem=109GB
 ### Send email on abort, begin and end
-#PBS -m abe
+#PBS -m a
 ### Specify mail recipient
 #PBS -M {email}
 
