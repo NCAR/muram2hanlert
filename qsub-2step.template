@@ -1,0 +1,24 @@
+#!/bin/bash
+### Job Name
+#PBS -N {jobname}
+### Project code
+#PBS -A {project}
+#PBS -l walltime=02:00:00
+#PBS -q economy
+### Define output and error files
+#PBS -o {jobpath}/stdout
+#PBS -e {jobpath}/stderr
+#PBS -l select=1:ncpus=36:mpiprocs=36:mem=109GB
+### Send email on abort, begin and end
+#PBS -m a
+### Specify mail recipient
+#PBS -M {email}
+
+echo "=== hanlert INPUT-step1 (no field) ==="
+echo
+mpirun hanlert {jobpath}/INPUT-step1
+echo
+echo
+echo "=== hanlert INPUT-step2 (with field) ==="
+echo
+mpirun hanlert {jobpath}/INPUT-step2
