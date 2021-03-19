@@ -1,0 +1,37 @@
+# Count the jobs that produced a {Solution,Stokesout,stdout} file
+find jobs/every10/iter_12000 -type f -name Solution | wc -l
+find jobs/every10/iter_12000 -type f -name Stokesout | wc -l
+find jobs/every10/iter_12000 -type f -name stdout | wc -l
+
+# Count the jobs that reportedly finished OK
+find jobs/every10/ -name stdout | xargs tail -n3 | egrep "^ - Hanle\+RT finished" | wc -l
+
+# Count the jobs that produced a Stokes_1_1 file
+find jobs/every10 -name Stokes_1_1 | wc -l
+
+# List of jobs that did NOT produce the Stokes_1_1 file
+find jobs/every10 -mindepth 3 -type d '!' -exec test -e "{}/Stokes_1_1" ';' -print > every10_nostokes.dirs
+
+# Generate a list of jobs that failed recently (-d 2 == last 2 days)
+qhist -d 2 -f -u egeland -w | grep every10 > every10_pbsfail
+
+# Turn the output of qhist into a list of job directories
+perl -n -e 'chomp; $_ =~ /(every10\w+)/; $x = $1; $x =~ s:every10_:jobs/every10/:; $x =~ s:_Y_:/Y_:; $x =~ s:_Z_:/Z_:;  print $x, "\n"' every10_pbsfail > every10_pbsfail.dirs
+
+# Count the jobs that failed due to reaching the walltime limit
+find jobs/every10 -name stderr | xargs head -n1 | grep walltime | wc -l
+
+# Count the jobs that produced a non-zero stderr file
+find jobs/every10 -name stderr | xargs ls -l | grep -v 'ncar     0' | wc -l
+
+# Count the jobs that wrote an ERROR file
+find jobs/every10 | grep ERROR | perl -p -e 's/ERROR*//' | sort | uniq | wc -l
+
+# Combine lists of different failure modes into a unique list
+cat every10_*.dirs | sort -u > every10_allfail.dirs
+
+# Clean job directories from a list
+cat every10_allfail.dirs | xargs -I{} find {} -type f -not -name INPUT -not -name muram.* -not -name hanlert.qsub | xargs rm
+
+# Resubmit jobs from a list of job directories
+cat every10_allfail.dirs | xargs -I{} find {} -name hanlert.qsub | xargs -n1 qsub 
