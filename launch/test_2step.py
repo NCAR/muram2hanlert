@@ -10,7 +10,7 @@ email = "egeland@ucar.edu"
 
 from scipy.signal import savgol_filter
 def smooth(x):
-    return savgol_filter(x, 9, 1)
+    return savgol_filter(x, 17, 1)
 
 y = 0
 z = 0
