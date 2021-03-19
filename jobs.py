@@ -107,9 +107,9 @@ def write_col(col, filepath, vmicro=None, zerovel=False, density_type='rho', tau
 
     # Magnetic field: convert from cartesian to inclination/azimuth representation
     def xyz2incazi(Bx, By, Bz):
-        B = np.sqrt(col.Bx**2 + col.By**2 + col.Bz**2)
-        Binc = np.degrees(np.arccos(col.Bx/B)) # deg; range [0, 180]
-        Bazi = np.degrees(np.arctan2(col.By, col.Bz)) # deg; range [-180, +180]
+        B = np.sqrt(Bx**2 + By**2 + Bz**2)
+        Binc = np.degrees(np.arccos(Bx/B)) # deg; range [0, 180]
+        Bazi = np.degrees(np.arctan2(By, Bz)) # deg; range [-180, +180]
         Bazi[ Bazi < 0 ] += 360. # deg; range [0, 360]
         return B, Binc, Bazi
 
@@ -249,22 +249,30 @@ def prepare_job(datapath, jobroot, jobname, iteration, y, z,
     os.makedirs(jobpath)
     write_col(col, os.path.join(jobpath, 'muram'), **kwargs)
     
-    # Prepare INPUT file
+    # Prepare INPUT file(s)
     jobpath_rel = os.path.relpath(jobpath, jobroot)
-    intemp = os.path.join(jobroot, intemp)
-    intemp = open(intemp, 'r').read()
-    intemp = intemp.format(jobpath=jobpath_rel)
-    inout = os.path.join(jobpath, "INPUT")
-    open(inout, 'w').write(intemp)
+    # formatting/writing of multiple INPUT files is possible
+    # If only one is supplied, cast it to a list
+    if not isinstance(intemp, list):
+        intemp = [intemp]
+    # Iterate template files, fill in, and write to job dir
+    for template in intemp:
+        temppath = os.path.join(jobroot, template)
+        tempdata = open(temppath, 'r').read()
+        filled = tempdata.format(jobpath=jobpath_rel)
+        if template.endswith('.template'):
+            template = template[0:-9] # strip .template at end
+        inout = os.path.join(jobpath, template)
+        open(inout, 'w').write(filled)
     
     # Prepare qsub file
     col_id = make_col_id(iteration, y, z)
     subjobname = "muram2hanlert_" + jobname + '_' + col_id
-    subtemp = os.path.join(jobroot, subtemp)
-    subtemp = open(subtemp, 'r').read()
-    subtemp = subtemp.format(jobpath=jobpath_rel, jobname=subjobname, project=project, email=email)
+    subpath = os.path.join(jobroot, subtemp)
+    subdata = open(subtemp, 'r').read()
+    filled = subdata.format(jobpath=jobpath_rel, jobname=subjobname, project=project, email=email)
     subout = os.path.join(jobpath, "hanlert.qsub")
-    open(subout, 'w').write(subtemp)
+    open(subout, 'w').write(filled)
 
     return jobpath
 
