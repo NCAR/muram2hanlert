@@ -41,7 +41,7 @@
 !
 !#####################################################################
 
- ATOM_INPUT = Atoms/CaII/CaII_5L_IRTCRD.atom
+ ATOM_INPUT = Atoms/CaII/CaII_5L_IRTCRD_sparse.atom
  
  ATOM_BACK = Atoms/Background/He_nobb.atom
  ATOM_BACK = Atoms/Background/C_nobb.atom
@@ -385,12 +385,7 @@
 
  RED_PRAM = YES
 
-! Cheyenne has 64 MB per node
-! "Usable memory" is listed as 45 GB per node for normal (common) nodes
-! There are 36 cores per node
-! We have 45 / 36 [GB/core] * 1024 [MB/GB] = 1280 [MB/core]
-! RAM_LIM = 1280
-RAM_LIM = NONE
+ RAM_LIM = NONE
 
 !#####################################################################
 !
