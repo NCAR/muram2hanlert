@@ -514,3 +514,15 @@
 
  MPI_ND = 1
 
+!#####################################################################
+!
+! COOL ATMOSPHERE PROTECTION
+!
+! Below are features added to help hanlert handle the cold atmospheres
+! that occur in the MURaM atmospheres
+!
+!#####################################################################
+
+ PRD_DELAY = 20
+ CHEM_PROTECT_ALL = Yes
+ ALI_DELAY = 2
