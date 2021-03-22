@@ -21,6 +21,7 @@ step = 8 # sampling frequency
 parser = argparse.ArgumentParser(description='Compute the coolvel HanleRT forward model on Cheyenne.')
 parser.add_argument('ystart', type=int, help='starting y to submit')
 parser.add_argument('Ny', type=int, help='Number of  y rows to submit')
+parser.add_argument('--check-height', action='store_true', help='submit nothing; check the min(max(height))')
 parser.add_argument('--print-only', action='store_true', help='submit nothing; just print what would be done')
 parser.add_argument('--prepare-only', action='store_true', help='prepare job directories without submitting them')
 args = parser.parse_args()
@@ -34,6 +35,13 @@ if ystop > (res - step):
     print(f"ERROR: requested end row {ystop} is out of bounds for this MURaM cube")
     exit(-1)
 
+# Check min(max(height)) for cube.
+if args.check_height:
+    min_height = 0
+    N_short = m2h.shortest_column(dir3D, iteration, min_height=min_height)
+    print(f"shortest column of iteration {iteration} has N={N_short} above (including) height=0")
+    exit(0)
+
 # Define the smoothing filter
 from scipy.signal import savgol_filter
 def smooth(x):
@@ -46,7 +54,7 @@ for y in range(ystart, ystop, step):
         if args.print_only:
               continue
         m2h.prepare_job(dir3D, jobroot, jobname, iteration, y, z, project, email,
-                        N_ixs=140, sample=2, zerovel=False, smooth=smooth,
+                        min_height=-192.0, N_ixs=132, N_ixs_ref='min', sample=2, zerovel=False, smooth=smooth,
                         intemp=['INPUT-step1.template', 'INPUT-step2.template'],
                         subtemp='qsub-2step.template')
         if not args.prepare_only:
