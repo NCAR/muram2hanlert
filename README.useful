@@ -30,6 +30,9 @@ find jobs/every10 | grep ERROR | perl -p -e 's/ERROR*//' | sort | uniq | wc -l
 # Combine lists of different failure modes into a unique list
 cat every10_*.dirs | sort -u > every10_allfail.dirs
 
+# Edit configuration files of all jobs in a list
+cat MgII_uniformB_v2_walltime | xargs -I{} perl -p -i -e 's/NG_ACC = Yes/NG_ACC = No/;' {}/INPUT
+
 # Clean job directories from a list
 cat every10_allfail.dirs | xargs -I{} find {} -type f -not -name INPUT -not -name muram.* -not -name hanlert.qsub | xargs rm
 
