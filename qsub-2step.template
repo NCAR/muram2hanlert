@@ -22,3 +22,8 @@ echo
 echo "=== hanlert INPUT-step2 (with field) ==="
 echo
 mpirun hanlert {jobpath}/INPUT-step2
+echo
+echo
+echo "=== post-processing ==="
+echo
+./combine_stokes.py {jobpath}
