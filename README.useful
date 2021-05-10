@@ -38,3 +38,7 @@ cat every10_allfail.dirs | xargs -I{} find {} -type f -not -name INPUT -not -nam
 
 # Resubmit jobs from a list of job directories
 cat every10_allfail.dirs | xargs -I{} find {} -name hanlert.qsub | xargs -n1 qsub 
+
+# Copy ONLY the atmos and Stokes.fits files to the Globus data transfer directory
+rsync -av --include='*/' --include='muram.*' --exclude='*' /glade/p/hao/radmhd/csac/coolnovel /glade/p/datashare/egeland/csac_reinvest/data/atmos
+rsync -av --include='*/' --include='*/Stokes.fits' --exclude='*' /glade/p/hao/radmhd/csac/coolnovel /glade/p/datashare/egeland/csac_reinvest/data/stokes
